@@ -395,3 +395,15 @@ npm run preview # Preview production build locally
 | `JWT_ACCESS_TOKEN_LIFETIME_MINUTES` | `15` | Access token lifetime |
 | `JWT_REFRESH_TOKEN_LIFETIME_DAYS` | `7` | Refresh token lifetime |
 | `JWT_SECRET_KEY` | — | Optional separate signing key for JWT |
+
+## Local Development
+
+### Backend
+
+```bash
+cd backend
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver

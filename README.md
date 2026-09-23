@@ -1023,35 +1023,35 @@ DocVault includes a modern, responsive interface designed around secure private 
 
 ### Landing Page
 
-![DocVault Landing Page](Screenshot/home.png)
+![DocVault Landing Page](docs/Screenshot/home.png)
 
 ### Login
 
-![DocVault Login](Screenshot/login.png)
+![DocVault Login](docs/Screenshot/login.png)
 
 ### Register
 
-![DocVault Register](Screenshot/register.png)
+![DocVault Register](docs/Screenshot/register.png)
 
 ### Dashboard
 
-![DocVault Dashboard](Screenshot/dashboard.png)
+![DocVault Dashboard](docs/Screenshot/dashboard.png)
 
 ### File Management
 
-![DocVault Files](Screenshot/files.png)
+![DocVault Files](docs/Screenshot/files.png)
 
 ### Folder Management
 
-![DocVault Folders](Screenshot/folders.png)
+![DocVault Folders](docs/Screenshot/folders.png)
 
 ### Activity & Audit Trail
 
-![DocVault Activity](Screenshot/activity.png)
+![DocVault Activity](docs/Screenshot/activity.png)
 
 ### Settings
 
-![DocVault Settings](Screenshot/settings.png)
+![DocVault Settings](docs/Screenshot/settings.png)
 
 
 

@@ -4,9 +4,11 @@ from django.utils import timezone
 
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics, status
+from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django_filters.rest_framework import DjangoFilterBackend
 
 from apps.activity.models import ActivityLog
 from apps.activity.utils import log_activity
@@ -31,6 +33,11 @@ class FileListCreateView(generics.ListCreateAPIView):
     serializer_class = FileSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ["folder", "visibility", "is_starred", "mime_type"]
+    search_fields = ["name", "mime_type"]
+    ordering_fields = ["created_at", "updated_at", "name", "size"]
+    ordering = ["-created_at"]
 
     def get_queryset(self):
         return (

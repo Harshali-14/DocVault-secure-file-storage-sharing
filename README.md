@@ -1,397 +1,1168 @@
 # DocVault
 
-A full-stack private document management platform — Django REST Framework backend with a React + TypeScript frontend.
+> **Your files. Your control.**
+
+DocVault is a secure private document management platform built with **Django REST Framework** and **React + TypeScript**.
+
+It provides a centralized workspace for uploading, organizing, previewing, downloading, sharing, and managing personal documents while keeping files private by default.
+
+The project focuses on secure file management, controlled sharing, authentication, activity tracking, folder organization, and a modern responsive user experience.
 
 ---
 
-## Project Structure
+## Overview
 
+DocVault allows users to manage their documents through a secure web application.
+
+Users can:
+
+- Create an account and securely authenticate
+- Upload and manage documents
+- Organize files into folders
+- Search and filter files
+- Preview supported documents
+- Download files
+- Rename and move files
+- Star important files
+- Track recently accessed files
+- Move files to trash
+- Restore deleted files
+- Permanently delete files
+- Share files with other registered users
+- Revoke shared access
+- Set optional share expiry
+- View account activity
+- Monitor storage usage
+
+Files are private by default and access is controlled through authenticated API requests.
+
+---
+
+# Features
+
+## Authentication
+
+- User registration
+- JWT-based login
+- Access and refresh tokens
+- Automatic access-token refresh
+- Token rotation and blacklist support
+- Protected API endpoints
+- Automatic redirect after authentication
+
+---
+
+## File Management
+
+- Upload documents
+- File size validation
+- File extension validation
+- MIME type validation
+- Filename sanitization
+- Duplicate filename prevention
+- File preview
+- File download
+- File rename
+- File move
+- File deletion
+- Permanent deletion
+- File metadata
+- Star/unstar files
+
+Duplicate filenames are prevented within the same folder for the same user.
+
+For example:
+
+```text
+resume.pdf
+````
+
+cannot be uploaded twice into the same location.
+
+The same filename can exist in different folders.
+
+---
+
+## Folder Management
+
+* Create folders
+* Delete folders
+* Rename/update folders
+* Nested folder support
+* Move files between folders
+* Folder ownership validation
+
+Folders are unique according to:
+
+```text
+(owner, parent, name)
 ```
+
+---
+
+## Search & Organization
+
+* Search files
+* Filter by folder
+* Star important files
+* Recent files
+* Trash management
+* Folder-based organization
+* List view
+* Grid view
+
+---
+
+## Sharing
+
+Users can securely share files with other registered users.
+
+Supported functionality:
+
+* Share a file by email
+* View files shared with you
+* View files you have shared
+* Revoke access
+* Optional share expiration
+* Access validation for expired shares
+* Access validation for revoked shares
+
+Shared access is controlled by the backend rather than relying only on frontend restrictions.
+
+---
+
+## Activity Tracking
+
+DocVault maintains an activity history for important user actions.
+
+Tracked actions include:
+
+```text
+login
+upload
+preview
+download
+share
+revoke_share
+rename
+move
+trash
+restore
+permanent_delete
+create_folder
+delete_folder
+star
+unstar
+```
+
+The activity page provides a searchable timeline of user actions.
+
+---
+
+## Trash & Recovery
+
+Deleted files are first moved to trash instead of being immediately removed.
+
+Users can:
+
+* View deleted files
+* Restore files
+* Permanently delete files
+
+This provides an additional recovery layer before permanent deletion.
+
+---
+
+# Security
+
+Security is a core part of DocVault.
+
+The application implements:
+
+* JWT authentication
+* Protected API endpoints
+* Owner-based access control
+* Private-by-default files
+* Folder ownership validation
+* Share permission validation
+* Share expiration
+* Share revocation
+* Filename sanitization
+* File extension validation
+* MIME type validation
+* Upload size restrictions
+* Duplicate filename protection
+* Soft deletion
+* Permanent deletion
+* Environment-based configuration
+* Production security settings
+
+The backend is responsible for validating permissions rather than trusting the frontend.
+
+---
+
+# Supported File Types
+
+DocVault currently supports:
+
+| Extension | MIME Type                                                                 |
+| --------- | ------------------------------------------------------------------------- |
+| `.pdf`    | `application/pdf`                                                         |
+| `.jpg`    | `image/jpeg`                                                              |
+| `.jpeg`   | `image/jpeg`                                                              |
+| `.png`    | `image/png`                                                               |
+| `.webp`   | `image/webp`                                                              |
+| `.docx`   | `application/vnd.openxmlformats-officedocument.wordprocessingml.document` |
+| `.xlsx`   | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`       |
+| `.txt`    | `text/plain`                                                              |
+
+Maximum upload size is configurable through:
+
+```env
+MAX_UPLOAD_SIZE_MB=50
+```
+
+---
+
+# Tech Stack
+
+## Frontend
+
+| Technology    | Purpose                        |
+| ------------- | ------------------------------ |
+| React         | UI                             |
+| TypeScript    | Type-safe frontend development |
+| Vite          | Frontend build tool            |
+| React Router  | Client-side routing            |
+| Axios         | API communication              |
+| Framer Motion | UI animations                  |
+| Lucide React  | Icons                          |
+
+---
+
+## Backend
+
+| Technology            | Purpose                        |
+| --------------------- | ------------------------------ |
+| Django                | Backend framework              |
+| Django REST Framework | REST API                       |
+| Simple JWT            | JWT authentication             |
+| SQLite                | Development database           |
+| PostgreSQL            | Production database            |
+| Celery                | Background task infrastructure |
+| Redis                 | Task queue infrastructure      |
+| drf-spectacular       | OpenAPI / API documentation    |
+| WhiteNoise            | Static file serving            |
+
+---
+
+# Architecture
+
+DocVault follows a separated frontend/backend architecture.
+
+```text
+                    ┌──────────────────────┐
+                    │      React App       │
+                    │   TypeScript + Vite  │
+                    └──────────┬───────────┘
+                               │
+                               │ REST API
+                               │ JWT
+                               ▼
+                    ┌──────────────────────┐
+                    │   Django REST API    │
+                    │       Backend        │
+                    └──────────┬───────────┘
+                               │
+              ┌────────────────┼────────────────┐
+              │                │                │
+              ▼                ▼                ▼
+        ┌──────────┐     ┌──────────┐     ┌──────────┐
+        │ Database │     │   Media  │     │  Redis   │
+        │ SQLite / │     │  Files   │     │ + Celery │
+        │PostgreSQL│     │          │     │          │
+        └──────────┘     └──────────┘     └──────────┘
+```
+
+---
+
+# Project Structure
+
+```text
 docvault/
-├── backend/                    # Django project
+│
+├── backend/
+│   │
 │   ├── apps/
-│   │   ├── accounts/           # Auth — register, login, JWT
-│   │   ├── activity/           # Audit log of all user actions
-│   │   ├── common/             # Shared exception handler
-│   │   ├── files/              # File upload, download, preview, trash, star
-│   │   ├── folders/            # Folder CRUD
-│   │   ├── sharing/            # File sharing between users
-│   │   └── storage/            # (Reserved — empty URL router)
+│   │   │
+│   │   ├── accounts/
+│   │   │   └── Authentication and user management
+│   │   │
+│   │   ├── activity/
+│   │   │   └── User activity and audit logs
+│   │   │
+│   │   ├── common/
+│   │   │   └── Shared utilities and exception handling
+│   │   │
+│   │   ├── files/
+│   │   │   └── File upload, download, preview, trash and star
+│   │   │
+│   │   ├── folders/
+│   │   │   └── Folder management
+│   │   │
+│   │   ├── sharing/
+│   │   │   └── File sharing and access control
+│   │   │
+│   │   └── storage/
+│   │       └── Storage-related infrastructure
+│   │
 │   ├── config/
+│   │   │
 │   │   ├── settings/
-│   │   │   ├── base.py         # Shared settings
-│   │   │   ├── development.py  # SQLite + DEBUG=True
-│   │   │   └── production.py   # PostgreSQL + security headers
+│   │   │   ├── base.py
+│   │   │   ├── development.py
+│   │   │   └── production.py
+│   │   │
 │   │   ├── celery.py
 │   │   ├── urls.py
 │   │   ├── asgi.py
 │   │   └── wsgi.py
+│   │
 │   ├── manage.py
-│   ├── .env                    # Environment variables (copy from .env.example)
-│   └── requirements.txt
-└── frontend/                   # React + TypeScript (Vite)
-    └── src/
-        ├── pages/
-        │   ├── Activity.tsx
-        │   ├── Dashboard.tsx
-        │   ├── Files.tsx
-        │   ├── Folders.tsx
-        │   ├── Login.tsx
-        │   ├── Recent.tsx
-        │   ├── Register.tsx
-        │   ├── Sharing.tsx
-        │   ├── Starred.tsx
-        │   └── Trash.tsx
-        ├── services/
-        │   └── api.ts          # Axios instance with JWT refresh interceptor
-        ├── App.tsx
-        ├── main.tsx
-        └── styles.css
+│   ├── requirements.txt
+│   └── .env.example
+│
+├── frontend/
+│   │
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── Activity.tsx
+│   │   │   ├── Dashboard.tsx
+│   │   │   ├── Files.tsx
+│   │   │   ├── Folders.tsx
+│   │   │   ├── Login.tsx
+│   │   │   ├── Recent.tsx
+│   │   │   ├── Register.tsx
+│   │   │   ├── Sharing.tsx
+│   │   │   ├── Starred.tsx
+│   │   │   └── Trash.tsx
+│   │   │
+│   │   ├── services/
+│   │   │   └── api.ts
+│   │   │
+│   │   ├── App.tsx
+│   │   ├── main.tsx
+│   │   └── styles.css
+│   │
+│   └── package.json
+│
+├── docs/
+│   └── screenshots/
+│
+└── README.md
 ```
 
 ---
 
-## Tech Stack
+# Prerequisites
 
-| Layer | Technology |
-|---|---|
-| Backend framework | Django 5.2, Django REST Framework 3.18 |
-| Auth | JWT via `djangorestframework-simplejwt` (access 15 min / refresh 7 days, rotation + blacklist) |
-| Database (dev) | SQLite |
-| Database (prod) | PostgreSQL via `psycopg2-binary` |
-| File storage | Django `FileField` → `media/documents/YYYY/MM/` |
-| Task queue | Celery + Redis (wired, no tasks defined yet) |
-| API schema | `drf-spectacular` (Swagger at `/api/docs/`, Redoc at `/api/redoc/`) |
-| Static files | WhiteNoise |
-| Frontend | React 19, TypeScript, Vite |
-| Routing | React Router v7 |
-| HTTP client | Axios with silent JWT token-refresh interceptor |
-| Animation | Framer Motion |
-| Icons | Lucide React |
+Before running DocVault locally, install:
 
----
+* Python 3.11+
+* Node.js 18+
+* npm
+* Git
 
-## Prerequisites
+For production:
 
-- Python 3.11+
-- Node.js 18+
-- (Production) PostgreSQL 14+
-- (Optional) Redis for Celery task queue
+* PostgreSQL 14+
+* Redis
+* Gunicorn
+* Reverse proxy such as Nginx
+
+PostgreSQL and Redis are **not required for basic local development**.
 
 ---
 
-## Backend Setup
+# Local Setup
 
-### 1. Create and activate a virtual environment
+## 1. Clone the repository
+
+```bash
+git clone https://github.com/Harshali-14/DocVault.git
+cd DocVault
+```
+
+---
+
+# Backend Setup
+
+## 2. Navigate to backend
 
 ```bash
 cd backend
+```
+
+---
+
+## 3. Create a virtual environment
+
+### Windows
+
+```bash
 python -m venv venv
-
-# macOS / Linux
-source venv/bin/activate
-
-# Windows
 venv\Scripts\activate
 ```
 
-### 2. Install dependencies
+### macOS / Linux
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+---
+
+## 4. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Configure environment
+---
 
-Copy `.env` and fill in your values:
+## 5. Configure environment variables
+
+Create a `.env` file from `.env.example`.
 
 ```bash
-cp .env .env.local   # edit .env.local, or edit .env directly
+copy .env.example .env
 ```
 
-Key variables:
+For macOS/Linux:
+
+```bash
+cp .env.example .env
+```
+
+Example development configuration:
 
 ```env
-DJANGO_SECRET_KEY=<long-random-string>
+DJANGO_SECRET_KEY=your-secret-key
 DEBUG=True
 
-# Development uses SQLite — DB_* vars are only used in production
-DB_NAME=docvault
-DB_USER=postgres
-DB_PASSWORD=your_password
-DB_HOST=localhost
-DB_PORT=5432
-
 ALLOWED_HOSTS=localhost,127.0.0.1
+
 CORS_ALLOWED_ORIGINS=http://localhost:5173
 
-REDIS_URL=redis://localhost:6379/0
 MAX_UPLOAD_SIZE_MB=50
 
 JWT_ACCESS_TOKEN_LIFETIME_MINUTES=15
 JWT_REFRESH_TOKEN_LIFETIME_DAYS=7
-JWT_SECRET_KEY=<separate-jwt-secret>
+
+JWT_SECRET_KEY=your-jwt-secret-key
+
+REDIS_URL=redis://localhost:6379/0
 ```
 
-> **Note:** Development uses SQLite (`db.sqlite3` in `backend/`). No PostgreSQL required to run locally.
+Development uses SQLite, so PostgreSQL configuration is not required for local development.
 
-### 4. Run migrations
+---
+
+## 6. Run migrations
 
 ```bash
 python manage.py migrate
 ```
 
-### 5. (Optional) Create a superuser
+---
+
+## 7. Create a superuser
+
+Optional:
 
 ```bash
 python manage.py createsuperuser
 ```
 
-### 6. Start the development server
+---
+
+## 8. Start the backend
 
 ```bash
 python manage.py runserver
 ```
 
-The API is available at `http://localhost:8000/api/`.
+Backend:
+
+```text
+http://localhost:8000/
+```
+
+API:
+
+```text
+http://localhost:8000/api/
+```
 
 ---
 
-## Frontend Setup
+# Frontend Setup
 
-### 1. Install dependencies
+Open a second terminal.
+
+## 9. Navigate to frontend
+
+From the project root:
 
 ```bash
 cd frontend
+```
+
+---
+
+## 10. Install dependencies
+
+```bash
 npm install
 ```
 
-### 2. Start the dev server
+---
+
+## 11. Start the development server
 
 ```bash
 npm run dev
 ```
 
-The app opens at `http://localhost:5173`.
+Frontend:
+
+```text
+http://localhost:5173/
+```
 
 ---
 
-## API Endpoints
+# API Documentation
 
-### Auth — `/api/auth/`
+DocVault provides automatically generated OpenAPI documentation.
 
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/auth/register/` | Create account |
-| POST | `/api/auth/login/` | Login → returns `access` + `refresh` tokens |
-| POST | `/api/auth/refresh/` | Refresh access token |
+### Swagger UI
 
-### Files — `/api/files/`
+```text
+http://localhost:8000/api/docs/
+```
 
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/files/` | List user's active files |
-| POST | `/api/files/` | Upload file (multipart) |
-| GET | `/api/files/{id}/` | Get file details |
-| DELETE | `/api/files/{id}/` | Soft-delete (move to trash) |
-| GET | `/api/files/{id}/download/` | Download file (blob) |
-| GET | `/api/files/{id}/preview/` | Preview file inline (blob) |
-| PATCH | `/api/files/{id}/rename/` | Rename file |
-| PATCH | `/api/files/{id}/move/` | Move file to a different folder |
-| PATCH | `/api/files/{id}/star/` | Toggle starred status |
-| GET | `/api/files/starred/` | List starred files |
-| GET | `/api/files/recent/` | Files recently previewed or downloaded |
-| GET | `/api/files/trash/` | List soft-deleted files |
-| POST | `/api/files/{id}/restore/` | Restore file from trash |
-| DELETE | `/api/files/{id}/permanent-delete/` | Permanently delete file + storage |
+### ReDoc
 
-**Upload constraints** (enforced in `FileUploadSerializer`):
-- Max size: `MAX_UPLOAD_SIZE_MB` (default 50 MB)
-- Allowed extensions: `.pdf`, `.jpg`, `.jpeg`, `.png`, `.webp`, `.docx`, `.xlsx`, `.txt`
+```text
+http://localhost:8000/api/redoc/
+```
 
-### Folders — `/api/folders/`
+### OpenAPI Schema
 
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/folders/` | List user's folders |
-| POST | `/api/folders/` | Create folder |
-| GET | `/api/folders/{id}/` | Get folder |
-| PUT/PATCH | `/api/folders/{id}/` | Update folder |
-| DELETE | `/api/folders/{id}/` | Delete folder |
-
-Folders are unique by `(owner, parent, name)`.
-
-### Sharing — `/api/sharing/`
-
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/sharing/files/{file_id}/` | Share a file with a user by email |
-| GET | `/api/sharing/my-shares/` | Files you have shared (active shares only) |
-| GET | `/api/sharing/shared-with-me/` | Files shared with you (non-expired) |
-| DELETE | `/api/sharing/{id}/revoke/` | Revoke a share (sets `revoked_at`) |
-
-Shares support optional `expires_at`. Access check in `FileDownloadView` / `FilePreviewView` respects expiry and revocation.
-
-### Activity — `/api/activity/`
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/api/activity/` | Last 100 activity log entries for the user |
-
-Logged actions: `login`, `upload`, `preview`, `download`, `share`, `revoke_share`, `rename`, `move`, `trash`, `restore`, `permanent_delete`, `create_folder`, `delete_folder`, `star`, `unstar`.
-
-### Schema
-
-| Endpoint | Description |
-|---|---|
-| `/api/schema/` | Raw OpenAPI schema |
-| `/api/docs/` | Swagger UI |
-| `/api/redoc/` | Redoc UI |
+```text
+http://localhost:8000/api/schema/
+```
 
 ---
 
-## Data Models
+# API Endpoints
 
-### `accounts.User`
-Extends `AbstractUser`. Adds `email` as a unique field.
+## Authentication
 
-### `files.File`
-| Field | Type | Notes |
-|---|---|---|
-| `owner` | FK → User | Cascade on delete |
-| `folder` | FK → Folder | Nullable, SET_NULL |
-| `name` | CharField(255) | Display name |
-| `file` | FileField | Stored at `documents/YYYY/MM/` |
-| `size` | PositiveBigIntegerField | Bytes |
-| `mime_type` | CharField | Set on upload |
-| `visibility` | CharField | `private` / `shared` |
-| `is_starred` | BooleanField | Default False |
-| `is_deleted` | BooleanField | Soft-delete flag |
-| `deleted_at` | DateTimeField | Nullable |
+Base URL:
 
-### `folders.Folder`
-| Field | Type | Notes |
-|---|---|---|
-| `owner` | FK → User | |
-| `name` | CharField(255) | |
-| `parent` | FK → self | Nullable, supports nesting |
+```text
+/api/auth/
+```
 
-Unique constraint: `(owner, parent, name)`.
-
-### `sharing.FileShare`
-| Field | Type | Notes |
-|---|---|---|
-| `file` | FK → File | |
-| `shared_with` | FK → User | |
-| `expires_at` | DateTimeField | Nullable |
-| `revoked_at` | DateTimeField | Nullable; set on revoke |
-
-Unique constraint: `(file, shared_with)` where `revoked_at IS NULL`.
-
-### `activity.ActivityLog`
-| Field | Type | Notes |
-|---|---|---|
-| `user` | FK → User | |
-| `action` | CharField | TextChoices |
-| `file` | FK → File | Nullable |
-| `folder` | FK → Folder | Nullable |
-| `target_user` | FK → User | Nullable |
-| `description` | CharField(500) | Human-readable |
-| `ip_address` | GenericIPAddressField | From `X-Forwarded-For` or `REMOTE_ADDR` |
+| Method | Endpoint     | Description                  |
+| ------ | ------------ | ---------------------------- |
+| POST   | `/register/` | Create a new account         |
+| POST   | `/login/`    | Login and receive JWT tokens |
+| POST   | `/refresh/`  | Refresh access token         |
 
 ---
 
-## Frontend Pages
+## Files
 
-| Route | Page | Description |
-|---|---|---|
-| `/` | Landing | Marketing landing with vault preview |
-| `/login` | Login | Username + password → JWT tokens stored in `localStorage` |
-| `/register` | Register | Create account |
-| `/dashboard` | Dashboard | Stats (file count, storage, private/shared), recent files |
-| `/files` | Files | Full file list with upload, search, folder filter, rename, move, share, star, delete |
-| `/folders` | Folders | Folder grid with create/delete |
-| `/sharing` | Sharing | Tabs: Shared with me / My shares; revoke from My shares |
-| `/activity` | Activity | Timeline of all logged actions, grouped by day, searchable |
-| `/recent` | Recent | Files previewed/downloaded recently |
-| `/starred` | Starred | Starred files with unstar action |
-| `/trash` | Trash | Soft-deleted files; restore or permanently delete |
-| `/settings` | Settings | Placeholder (not yet implemented) |
+Base URL:
 
-### JWT Refresh Flow (`src/services/api.ts`)
-The Axios instance automatically retries any 401 response by refreshing the token. Concurrent requests are queued and replayed after the refresh succeeds. On refresh failure, tokens are cleared and the user is redirected to `/login`.
+```text
+/api/files/
+```
 
----
-
-## Authentication Flow
-
-1. `POST /api/auth/register/` → creates user
-2. `POST /api/auth/login/` → returns `{ access, refresh }`; frontend stores both in `localStorage`
-3. All subsequent requests include `Authorization: Bearer <access>`
-4. On 401, the interceptor calls `POST /api/auth/refresh/` and retries
-5. Logout clears both tokens and navigates to `/login`
+| Method | Endpoint                  | Description                  |
+| ------ | ------------------------- | ---------------------------- |
+| GET    | `/`                       | List active files            |
+| POST   | `/`                       | Upload a file                |
+| GET    | `/{id}/`                  | Get file details             |
+| DELETE | `/{id}/`                  | Move file to trash           |
+| GET    | `/{id}/download/`         | Download file                |
+| GET    | `/{id}/preview/`          | Preview file                 |
+| PATCH  | `/{id}/rename/`           | Rename file                  |
+| PATCH  | `/{id}/move/`             | Move file                    |
+| PATCH  | `/{id}/star/`             | Toggle starred status        |
+| GET    | `/starred/`               | List starred files           |
+| GET    | `/recent/`                | List recently accessed files |
+| GET    | `/trash/`                 | List deleted files           |
+| POST   | `/{id}/restore/`          | Restore deleted file         |
+| DELETE | `/{id}/permanent-delete/` | Permanently delete file      |
 
 ---
 
-## Error Handling
+## Folders
 
-All API errors are normalised through `apps.common.exceptions.custom_exception_handler`:
+Base URL:
+
+```text
+/api/folders/
+```
+
+| Method | Endpoint | Description             |
+| ------ | -------- | ----------------------- |
+| GET    | `/`      | List folders            |
+| POST   | `/`      | Create folder           |
+| GET    | `/{id}/` | Get folder              |
+| PUT    | `/{id}/` | Update folder           |
+| PATCH  | `/{id}/` | Partially update folder |
+| DELETE | `/{id}/` | Delete folder           |
+
+---
+
+## Sharing
+
+Base URL:
+
+```text
+/api/sharing/
+```
+
+| Method | Endpoint            | Description                  |
+| ------ | ------------------- | ---------------------------- |
+| POST   | `/files/{file_id}/` | Share file with another user |
+| GET    | `/my-shares/`       | View files shared by you     |
+| GET    | `/shared-with-me/`  | View files shared with you   |
+| DELETE | `/{id}/revoke/`     | Revoke shared access         |
+
+Shares may optionally have an expiration time.
+
+---
+
+## Activity
+
+Base URL:
+
+```text
+/api/activity/
+```
+
+| Method | Endpoint | Description              |
+| ------ | -------- | ------------------------ |
+| GET    | `/`      | Retrieve recent activity |
+
+---
+
+# Authentication Flow
+
+DocVault uses JWT-based authentication.
+
+```text
+Register
+   │
+   ▼
+POST /api/auth/register/
+   │
+   ▼
+Login
+   │
+   ▼
+POST /api/auth/login/
+   │
+   ├───────────────┐
+   ▼               ▼
+Access Token    Refresh Token
+   │
+   ▼
+Authenticated API Requests
+   │
+   ▼
+401 Response
+   │
+   ▼
+Refresh Access Token
+   │
+   ▼
+Retry Original Request
+```
+
+The frontend Axios client automatically handles token refresh.
+
+When multiple requests receive a `401` response simultaneously, refresh requests are coordinated so that requests can be queued and replayed after a successful token refresh.
+
+If refresh fails:
+
+```text
+Tokens cleared
+      ↓
+User redirected to /login
+```
+
+---
+
+# Data Models
+
+## User
+
+The custom user model extends Django's `AbstractUser` and provides a unique email field.
+
+---
+
+## File
+
+Important fields include:
+
+| Field        | Description           |
+| ------------ | --------------------- |
+| `owner`      | File owner            |
+| `folder`     | Associated folder     |
+| `name`       | User-visible filename |
+| `file`       | Stored file           |
+| `size`       | File size in bytes    |
+| `mime_type`  | MIME type             |
+| `visibility` | Private/shared        |
+| `is_starred` | Star status           |
+| `is_deleted` | Trash status          |
+| `deleted_at` | Deletion timestamp    |
+
+Files are stored using Django's `FileField`.
+
+Storage path:
+
+```text
+media/documents/YYYY/MM/
+```
+
+---
+
+## Folder
+
+Folders support nesting through a self-referencing parent relationship.
+
+```text
+Folder
+ ├── owner
+ ├── name
+ └── parent
+```
+
+Folder names are unique per owner and parent folder.
+
+---
+
+## FileShare
+
+Controls file sharing between users.
+
+Important fields:
+
+```text
+file
+shared_with
+expires_at
+revoked_at
+```
+
+Access is denied when a share is revoked or expired.
+
+---
+
+## ActivityLog
+
+Records important user actions.
+
+Examples:
+
+```text
+upload
+download
+preview
+rename
+move
+share
+revoke_share
+trash
+restore
+permanent_delete
+star
+unstar
+```
+
+---
+
+# Frontend Routes
+
+| Route        | Page      | Purpose                  |
+| ------------ | --------- | ------------------------ |
+| `/`          | Landing   | Product landing page     |
+| `/login`     | Login     | User authentication      |
+| `/register`  | Register  | Account creation         |
+| `/dashboard` | Dashboard | Overview and statistics  |
+| `/files`     | Files     | Complete file management |
+| `/folders`   | Folders   | Folder management        |
+| `/sharing`   | Sharing   | Shared files             |
+| `/activity`  | Activity  | Activity history         |
+| `/recent`    | Recent    | Recently accessed files  |
+| `/starred`   | Starred   | Starred files            |
+| `/trash`     | Trash     | Deleted files            |
+| `/settings`  | Settings  | Settings area            |
+
+---
+
+# File Validation
+
+Uploaded files go through multiple validation layers.
+
+### 1. File size
+
+The configured maximum upload size is enforced.
+
+```env
+MAX_UPLOAD_SIZE_MB=50
+```
+
+### 2. Extension
+
+Only supported extensions are accepted.
+
+### 3. MIME type
+
+The uploaded MIME type is checked against the allowed MIME types.
+
+### 4. Filename sanitization
+
+Unsafe filesystem characters are sanitized.
+
+### 5. Duplicate detection
+
+The backend prevents duplicate active filenames for the same user in the same folder.
+
+Example:
+
+```text
+Documents/
+├── resume.pdf
+└── resume.pdf   ← blocked
+```
+
+But:
+
+```text
+Documents/
+└── resume.pdf
+
+Projects/
+└── resume.pdf   ← allowed
+```
+
+---
+
+# Error Handling
+
+API errors are normalized through the shared exception handler.
+
+Example:
 
 ```json
-{ "error": "<message>", "status_code": 400 }
+{
+  "error": "File validation failed.",
+  "status_code": 400
+}
 ```
 
-Field-level validation errors (e.g. from serializers) are preserved as-is under `"error"`.
+Serializer validation errors retain field-specific information where applicable.
+
+For example:
+
+```json
+{
+  "error": {
+    "name": [
+      "A file named \"resume.pdf\" already exists in this location."
+    ]
+  },
+  "status_code": 400
+}
+```
 
 ---
 
-## Production Checklist
+# Production Configuration
 
-- [ ] Set `DEBUG=False` and use `config.settings.production`
-- [ ] Set a strong `DJANGO_SECRET_KEY`
-- [ ] Configure PostgreSQL credentials in `.env`
-- [ ] Set `ALLOWED_HOSTS` and `CORS_ALLOWED_ORIGINS` to your real domains
-- [ ] Run `python manage.py collectstatic`
-- [ ] Start gunicorn: `gunicorn config.wsgi:application`
-- [ ] Set up Redis and run Celery worker: `celery -A config worker -l info`
-- [ ] Configure a reverse proxy (nginx) to serve `/media/` and `/static/`
-- [ ] Use HTTPS (production settings enforce HSTS and secure cookies)
+The backend includes separate development and production settings.
+
+```text
+backend/config/settings/
+
+├── base.py
+├── development.py
+└── production.py
+```
+
+Development uses:
+
+```text
+SQLite
+DEBUG=True
+```
+
+Production is configured for:
+
+```text
+PostgreSQL
+DEBUG=False
+WhiteNoise
+Security headers
+HTTPS
+HSTS
+```
 
 ---
 
-## Development Commands
+# Production Checklist
+
+Before deploying DocVault:
+
+* [ ] Set `DEBUG=False`
+* [ ] Generate a strong Django secret key
+* [ ] Configure PostgreSQL
+* [ ] Configure production `ALLOWED_HOSTS`
+* [ ] Configure production CORS origins
+* [ ] Configure media storage
+* [ ] Run migrations
+* [ ] Run `collectstatic`
+* [ ] Configure Gunicorn
+* [ ] Configure HTTPS
+* [ ] Configure reverse proxy
+* [ ] Configure Redis
+* [ ] Start Celery worker
+* [ ] Configure backups
+* [ ] Keep `.env` out of version control
+
+---
+
+# Useful Commands
+
+## Backend
+
+Start server:
 
 ```bash
-# Backend
-python manage.py runserver          # Start dev server
-python manage.py migrate            # Apply migrations
-python manage.py makemigrations     # Create migrations after model changes
-python manage.py createsuperuser    # Create admin user
-python manage.py spectacular --file schema.yml  # Export OpenAPI schema
+python manage.py runserver
+```
 
-# Frontend
-npm run dev     # Start Vite dev server
-npm run build   # Production build (output: dist/)
-npm run preview # Preview production build locally
+Create migrations:
+
+```bash
+python manage.py makemigrations
+```
+
+Apply migrations:
+
+```bash
+python manage.py migrate
+```
+
+Create admin user:
+
+```bash
+python manage.py createsuperuser
+```
+
+Export OpenAPI schema:
+
+```bash
+python manage.py spectacular --file schema.yml
+```
+
+Collect static files:
+
+```bash
+python manage.py collectstatic
 ```
 
 ---
 
-## Environment Variables Reference
+## Frontend
 
-| Variable | Default | Description |
-|---|---|---|
-| `DJANGO_SECRET_KEY` | — | Required. Django secret key |
-| `DEBUG` | `False` | Set to `True` for development |
-| `DB_NAME` | — | PostgreSQL database name (production) |
-| `DB_USER` | — | PostgreSQL user (production) |
-| `DB_PASSWORD` | — | PostgreSQL password (production) |
-| `DB_HOST` | `localhost` | PostgreSQL host |
-| `DB_PORT` | `5432` | PostgreSQL port |
-| `ALLOWED_HOSTS` | — | Comma-separated list of allowed hostnames |
-| `CORS_ALLOWED_ORIGINS` | — | Comma-separated list of allowed frontend origins |
-| `REDIS_URL` | `redis://localhost:6379/0` | Redis URL for Celery |
-| `MAX_UPLOAD_SIZE_MB` | `50` | Maximum file upload size in MB |
-| `JWT_ACCESS_TOKEN_LIFETIME_MINUTES` | `15` | Access token lifetime |
-| `JWT_REFRESH_TOKEN_LIFETIME_DAYS` | `7` | Refresh token lifetime |
-| `JWT_SECRET_KEY` | — | Optional separate signing key for JWT |
+Start development server:
+
+```bash
+npm run dev
+```
+
+Build production bundle:
+
+```bash
+npm run build
+```
+
+Preview production build:
+
+```bash
+npm run preview
+```
+
+---
+
+# Screenshots
+
+Screenshots can be added under:
+
+```text
+docs/screenshots/
+```
+
+Recommended screenshots:
+
+```text
+docs/
+└── screenshots/
+    ├── landing.png
+    ├── login.png
+    ├── dashboard.png
+    ├── files.png
+    ├── folders.png
+    ├── sharing.png
+    ├── activity.png
+    ├── trash.png
+    └── mobile.png
+```
+
+Then include them here:
+
+```md
+## Screenshots
+
+### Landing Page
+
+![DocVault Landing Page](docs/screenshots/landing.png)
+
+### Dashboard
+
+![DocVault Dashboard](docs/screenshots/dashboard.png)
+
+### File Management
+
+![DocVault Files](docs/screenshots/files.png)
+
+### Responsive Design
+
+![DocVault Mobile](docs/screenshots/mobile.png)
+```
+
+---
+
+# Development Status
+
+DocVault currently includes:
+
+* [x] User registration
+* [x] JWT authentication
+* [x] Token refresh
+* [x] File upload
+* [x] File validation
+* [x] Duplicate filename protection
+* [x] File preview
+* [x] File download
+* [x] File rename
+* [x] File move
+* [x] Folder management
+* [x] Search and filtering
+* [x] List view
+* [x] Grid view
+* [x] Starred files
+* [x] Recent files
+* [x] Trash
+* [x] File restoration
+* [x] Permanent deletion
+* [x] File sharing
+* [x] Share revocation
+* [x] Share expiration
+* [x] Activity tracking
+* [x] Responsive interface
+* [x] Swagger API documentation
+
+---
+
+# Future Improvements
+
+Potential future improvements include:
+
+* [ ] Advanced storage analytics
+* [ ] Additional file formats
+* [ ] Bulk file operations
+* [ ] Bulk download
+* [ ] Advanced sharing controls
+* [ ] Background file processing
+* [ ] Cloud object storage integration
+* [ ] Automated backups
+* [ ] Email notifications
+* [ ] Two-factor authentication
+* [ ] Password reset flow
+* [ ] More granular permissions
+* [ ] Production deployment
+
+---
+
+# Why DocVault?
+
+DocVault was built to explore the practical challenges involved in developing a secure full-stack file management system.
+
+The project combines:
+
+* REST API development
+* Authentication and authorization
+* File handling
+* Database relationships
+* Access control
+* Secure sharing
+* Frontend state management
+* API integration
+* Responsive UI development
+* Activity auditing
+* Production-oriented configuration
+
+It is designed as a practical full-stack application rather than a simple CRUD project.
+
+---
+
+# License
+
+This project is currently intended as a personal portfolio and learning project.
+
+---
+
+# Author
+
+**Harshali Kulkarni**
+
+Software Engineer | Python & Django Developer
+
+* GitHub: [https://github.com/Harshali-14](https://github.com/Harshali-14)
+* LinkedIn: [https://linkedin.com/in/harshali-kulkarni-54a822236](https://linkedin.com/in/harshali-kulkarni-54a822236)
+* Portfolio: [https://harshali.pythonanywhere.com/](https://harshali.pythonanywhere.com/)
+
+---
+
+# Project
+
+**DocVault**
+
+> Secure private document management — built with Django REST Framework and React + TypeScript.
+
+
+
+
+

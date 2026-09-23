@@ -1,6 +1,27 @@
-import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import {
+  Activity,
+  ArrowUpRight,
+  Download,
+  File,
+  FileArchive,
+  FileImage,
+  FileSpreadsheet,
+  FileText,
+  FileType,
+  FolderOpen,
+  Lock,
+  RefreshCw,
+  Search,
+  Share2,
+  ShieldCheck,
+  Sparkles,
+  Upload,
+  Users,
+  Zap,
+} from "lucide-react";
 import api from "../services/api";
 
 interface VaultFile {
@@ -38,20 +59,12 @@ function formatBytes(bytes: number): string {
 
   const index = Math.min(
     Math.floor(Math.log(bytes) / Math.log(1024)),
-    units.length - 1,
+    units.length - 1
   );
 
   return `${(bytes / Math.pow(1024, index)).toFixed(
-    index === 0 ? 0 : 1,
+    index === 0 ? 0 : 1
   )} ${units[index]}`;
-}
-
-function getFileType(name: string): string {
-  const extension = name.split(".").pop()?.toUpperCase();
-
-  if (!extension) return "FILE";
-
-  return extension;
 }
 
 function formatDate(date: string): string {
@@ -62,10 +75,66 @@ function formatDate(date: string): string {
   });
 }
 
+function getExtension(name: string): string {
+  const extension = name.split(".").pop()?.toLowerCase();
+
+  if (!extension || extension === name.toLowerCase()) {
+    return "file";
+  }
+
+  return extension;
+}
+
+function getFileIcon(name: string) {
+  const extension = getExtension(name);
+
+  if (["pdf"].includes(extension)) {
+    return FileText;
+  }
+
+  if (
+    ["doc", "docx", "txt", "rtf"].includes(extension)
+  ) {
+    return FileType;
+  }
+
+  if (
+    ["xls", "xlsx", "csv"].includes(extension)
+  ) {
+    return FileSpreadsheet;
+  }
+
+  if (
+    ["jpg", "jpeg", "png", "webp", "gif", "svg"].includes(
+      extension
+    )
+  ) {
+    return FileImage;
+  }
+
+  if (
+    ["zip", "rar", "7z", "tar", "gz"].includes(extension)
+  ) {
+    return FileArchive;
+  }
+
+  return File;
+}
+
+function getFileTypeLabel(name: string): string {
+  const extension = getExtension(name);
+
+  if (extension === "file") return "FILE";
+
+  return extension.toUpperCase().slice(0, 5);
+}
+
 function Dashboard() {
   const navigate = useNavigate();
 
   const [files, setFiles] = useState<VaultFile[]>([]);
+  const [storage, setStorage] =
+    useState<StorageResponse | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [storageLoading, setStorageLoading] =
@@ -75,57 +144,83 @@ function Dashboard() {
   const [storageError, setStorageError] =
     useState("");
 
-  const [storage, setStorage] =
-    useState<StorageResponse | null>(null);
+  const [refreshing, setRefreshing] =
+    useState(false);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
+  const fetchDashboardData = async (
+    showRefreshing = false
+  ) => {
+    try {
+      if (showRefreshing) {
+        setRefreshing(true);
+      } else {
         setLoading(true);
         setStorageLoading(true);
-        setError("");
-        setStorageError("");
-
-        const [filesResponse, storageResponse] =
-          await Promise.all([
-            api.get<FileListResponse>("/files/"),
-            api.get<StorageResponse>("/files/storage/"),
-          ]);
-
-        setFiles(filesResponse.data.results);
-
-        setStorage(storageResponse.data);
-      } catch (err) {
-        console.error(
-          "Failed to load dashboard:",
-          err,
-        );
-
-        /*
-         * If the requests fail together, keep the
-         * existing dashboard error message.
-         */
-        setError(
-          "Unable to load your vault information.",
-        );
-      } finally {
-        setLoading(false);
-        setStorageLoading(false);
       }
-    };
 
+      setError("");
+      setStorageError("");
+
+      const [filesResult, storageResult] =
+        await Promise.allSettled([
+          api.get<FileListResponse>("/files/"),
+          api.get<StorageResponse>("/files/storage/"),
+        ]);
+
+      if (filesResult.status === "fulfilled") {
+        setFiles(filesResult.value.data.results || []);
+      } else {
+        console.error(
+          "Failed to load files:",
+          filesResult.reason
+        );
+
+        setError(
+          "Unable to load your recent files."
+        );
+      }
+
+      if (storageResult.status === "fulfilled") {
+        setStorage(storageResult.value.data);
+      } else {
+        console.error(
+          "Failed to load storage:",
+          storageResult.reason
+        );
+
+        setStorageError(
+          "Storage information is temporarily unavailable."
+        );
+      }
+    } catch (err) {
+      console.error(
+        "Failed to load dashboard:",
+        err
+      );
+
+      setError(
+        "Unable to load your vault information."
+      );
+    } finally {
+      setLoading(false);
+      setStorageLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
     fetchDashboardData();
   }, []);
 
   const handleDownload = async (
-    file: VaultFile,
+    file: VaultFile
   ) => {
     try {
       const response = await api.get(
         `/files/${file.id}/download/`,
         {
           responseType: "blob",
-        },
+        }
       );
 
       const blob = new Blob([response.data], {
@@ -153,20 +248,20 @@ function Dashboard() {
     } catch (err) {
       console.error(
         "Failed to download file:",
-        err,
+        err
       );
     }
   };
 
   const handlePreview = async (
-    file: VaultFile,
+    file: VaultFile
   ) => {
     try {
       const response = await api.get(
         `/files/${file.id}/preview/`,
         {
           responseType: "blob",
-        },
+        }
       );
 
       const blob = new Blob([response.data], {
@@ -181,7 +276,7 @@ function Dashboard() {
       window.open(
         url,
         "_blank",
-        "noopener,noreferrer",
+        "noopener,noreferrer"
       );
 
       setTimeout(() => {
@@ -190,25 +285,28 @@ function Dashboard() {
     } catch (err) {
       console.error(
         "Failed to preview file:",
-        err,
+        err
       );
     }
   };
 
-  /*
-   * This is only used for the visible dashboard
-   * file statistics.
-   *
-   * Storage usage itself comes from the dedicated
-   * backend storage endpoint.
-   */
-  const privateFiles = files.filter(
-    (file) => file.visibility === "private",
-  ).length;
+  const privateFiles = useMemo(
+    () =>
+      files.filter(
+        (file) =>
+          file.visibility === "private"
+      ).length,
+    [files]
+  );
 
-  const sharedFiles = files.filter(
-    (file) => file.visibility === "shared",
-  ).length;
+  const sharedFiles = useMemo(
+    () =>
+      files.filter(
+        (file) =>
+          file.visibility === "shared"
+      ).length,
+    [files]
+  );
 
   const storagePercentage =
     storage && storage.total > 0
@@ -219,349 +317,777 @@ function Dashboard() {
               (storage.used /
                 storage.total) *
               100
-            ).toFixed(2),
-          ),
+            ).toFixed(2)
+          )
         )
       : 0;
 
+  const storageWarning =
+    storagePercentage >= 80;
+
+  const recentFiles = files
+    .filter((file) => !file.is_deleted)
+    .slice(0, 6);
+
   return (
     <div className="dashboard">
-      {/* PAGE HEADER */}
+      {/* =====================================================
+          HERO
+         ===================================================== */}
 
       <motion.section
         className="dashboard-hero"
         initial={{
           opacity: 0,
-          y: 10,
+          y: 18,
         }}
         animate={{
           opacity: 1,
           y: 0,
         }}
         transition={{
-          duration: 0.35,
+          duration: 0.45,
         }}
       >
-        <div className="dashboard-hero-copy">
-          <span className="dashboard-eyebrow">
-            PRIVATE WORKSPACE
-          </span>
+        <div className="dashboard-hero-grid" />
 
-          <h1>Your vault</h1>
+        <div className="dashboard-hero-copy">
+          <div className="dashboard-eyebrow-row">
+            <span className="dashboard-eyebrow">
+              PRIVATE WORKSPACE
+            </span>
+
+            <span className="dashboard-live-status">
+              <span className="live-dot" />
+              Protected
+            </span>
+          </div>
+
+          <h1>
+            Your vault,
+            <br />
+            <span>under your control.</span>
+          </h1>
 
           <p>
-            Manage your documents, files and
-            private digital assets from one
-            secure workspace.
+            Store, organize and manage your important
+            documents from one secure private workspace.
           </p>
+
+          <div className="dashboard-hero-actions">
+            <motion.button
+              type="button"
+              className="dashboard-primary-button"
+              onClick={() => navigate("/files")}
+              whileHover={{
+                y: -2,
+              }}
+              whileTap={{
+                scale: 0.98,
+              }}
+            >
+              <Upload size={16} />
+              Upload file
+              <ArrowUpRight size={14} />
+            </motion.button>
+
+            <motion.button
+              type="button"
+              className="dashboard-secondary-button"
+              onClick={() => navigate("/files")}
+              whileHover={{
+                y: -2,
+              }}
+              whileTap={{
+                scale: 0.98,
+              }}
+            >
+              <Search size={15} />
+              Browse vault
+            </motion.button>
+          </div>
         </div>
 
-        <button
-          type="button"
-          className="dashboard-upload-button"
-          onClick={() => navigate("/files")}
-        >
-          <span className="upload-plus">
-            +
-          </span>
+        <div className="dashboard-hero-visual">
+          <div className="hero-orbit hero-orbit-one" />
+          <div className="hero-orbit hero-orbit-two" />
 
-          <span>Upload file</span>
-        </button>
+          <motion.div
+            className="hero-security-card"
+            animate={{
+              y: [0, -5, 0],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            <div className="hero-security-icon">
+              <ShieldCheck size={21} />
+            </div>
+
+            <div>
+              <strong>Vault protected</strong>
+              <span>
+                Private access enabled
+              </span>
+            </div>
+
+            <div className="hero-check">
+              ✓
+            </div>
+          </motion.div>
+
+          <div className="hero-mini-card hero-mini-card-top">
+            <Lock size={14} />
+            <span>Private by default</span>
+          </div>
+
+          <div className="hero-mini-card hero-mini-card-bottom">
+            <Activity size={14} />
+            <span>Activity tracked</span>
+          </div>
+        </div>
       </motion.section>
 
-      {/* STATISTICS */}
+      {/* =====================================================
+          QUICK ACTIONS
+         ===================================================== */}
+
+      <section className="dashboard-quick-actions">
+        <motion.button
+          type="button"
+          className="quick-action-card"
+          onClick={() => navigate("/files")}
+          initial={{
+            opacity: 0,
+            y: 12,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            delay: 0.08,
+          }}
+          whileHover={{
+            y: -3,
+          }}
+        >
+          <span className="quick-action-icon">
+            <Upload size={17} />
+          </span>
+
+          <span className="quick-action-content">
+            <strong>Upload files</strong>
+            <small>
+              Add documents to your vault
+            </small>
+          </span>
+
+          <ArrowUpRight size={15} />
+        </motion.button>
+
+        <motion.button
+          type="button"
+          className="quick-action-card"
+          onClick={() => navigate("/folders")}
+          initial={{
+            opacity: 0,
+            y: 12,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            delay: 0.12,
+          }}
+          whileHover={{
+            y: -3,
+          }}
+        >
+          <span className="quick-action-icon">
+            <FolderOpen size={17} />
+          </span>
+
+          <span className="quick-action-content">
+            <strong>Organize files</strong>
+            <small>
+              Browse your folders
+            </small>
+          </span>
+
+          <ArrowUpRight size={15} />
+        </motion.button>
+
+        <motion.button
+          type="button"
+          className="quick-action-card"
+          onClick={() => navigate("/sharing")}
+          initial={{
+            opacity: 0,
+            y: 12,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            delay: 0.16,
+          }}
+          whileHover={{
+            y: -3,
+          }}
+        >
+          <span className="quick-action-icon">
+            <Share2 size={17} />
+          </span>
+
+          <span className="quick-action-content">
+            <strong>Shared access</strong>
+            <small>
+              Manage shared documents
+            </small>
+          </span>
+
+          <ArrowUpRight size={15} />
+        </motion.button>
+
+        <motion.button
+          type="button"
+          className="quick-action-card"
+          onClick={() => navigate("/activity")}
+          initial={{
+            opacity: 0,
+            y: 12,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            delay: 0.2,
+          }}
+          whileHover={{
+            y: -3,
+          }}
+        >
+          <span className="quick-action-icon">
+            <Activity size={17} />
+          </span>
+
+          <span className="quick-action-content">
+            <strong>Activity log</strong>
+            <small>
+              Review vault activity
+            </small>
+          </span>
+
+          <ArrowUpRight size={15} />
+        </motion.button>
+      </section>
+
+      {/* =====================================================
+          STATS
+         ===================================================== */}
 
       <section className="dashboard-stats">
-        {/* TOTAL FILES */}
-
-        <motion.div
-          className="dashboard-stat"
-          initial={{
-            opacity: 0,
-            y: 14,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          transition={{
-            duration: 0.3,
-          }}
-        >
-          <div className="dashboard-stat-top">
-            <span>Total files</span>
-
-            <span className="dashboard-stat-index">
-              01
-            </span>
-          </div>
-
-          <strong>
-            {loading ? "—" : files.length}
-          </strong>
-
-          <p>
-            Files currently in your vault
-          </p>
-        </motion.div>
-
-        {/* STORAGE */}
-
-        <motion.div
-          className="dashboard-stat"
-          initial={{
-            opacity: 0,
-            y: 14,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          transition={{
-            duration: 0.35,
-            delay: 0.04,
-          }}
-        >
-          <div className="dashboard-stat-top">
-            <span>Storage used</span>
-
-            <span className="dashboard-stat-index">
-              02
-            </span>
-          </div>
-
-          <strong>
-            {storageLoading
+        {[
+          {
+            number: "01",
+            label: "Total files",
+            value: loading
+              ? "—"
+              : files.length,
+            description:
+              "Files currently in your vault",
+            icon: File,
+          },
+          {
+            number: "02",
+            label: "Storage used",
+            value: storageLoading
               ? "—"
               : storage
               ? formatBytes(storage.used)
-              : "—"}
-          </strong>
-
-          <p>
-            Total uploaded file size
-          </p>
-        </motion.div>
-
-        {/* PRIVATE */}
-
-        <motion.div
-          className="dashboard-stat"
-          initial={{
-            opacity: 0,
-            y: 14,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          transition={{
-            duration: 0.35,
-            delay: 0.08,
-          }}
-        >
-          <div className="dashboard-stat-top">
-            <span>Private</span>
-
-            <span className="dashboard-stat-index">
-              03
-            </span>
-          </div>
-
-          <strong>
-            {loading
+              : "—",
+            description:
+              "Total uploaded file size",
+            icon: Zap,
+          },
+          {
+            number: "03",
+            label: "Private",
+            value: loading
               ? "—"
-              : privateFiles}
-          </strong>
-
-          <p>
-            Visible only to you
-          </p>
-        </motion.div>
-
-        {/* SHARED */}
-
-        <motion.div
-          className="dashboard-stat"
-          initial={{
-            opacity: 0,
-            y: 14,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          transition={{
-            duration: 0.35,
-            delay: 0.12,
-          }}
-        >
-          <div className="dashboard-stat-top">
-            <span>Shared</span>
-
-            <span className="dashboard-stat-index">
-              04
-            </span>
-          </div>
-
-          <strong>
-            {loading
+              : privateFiles,
+            description:
+              "Visible only to you",
+            icon: Lock,
+          },
+          {
+            number: "04",
+            label: "Shared",
+            value: loading
               ? "—"
-              : sharedFiles}
-          </strong>
+              : sharedFiles,
+            description:
+              "Files marked as shared",
+            icon: Users,
+          },
+        ].map((stat, index) => {
+          const Icon = stat.icon;
 
-          <p>
-            Files marked as shared
-          </p>
-        </motion.div>
-      </section>
+          return (
+            <motion.div
+              key={stat.number}
+              className="dashboard-stat"
+              initial={{
+                opacity: 0,
+                y: 15,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              transition={{
+                duration: 0.35,
+                delay:
+                  0.08 + index * 0.04,
+              }}
+              whileHover={{
+                y: -3,
+              }}
+            >
+              <div className="dashboard-stat-top">
+                <div className="dashboard-stat-label">
+                  <Icon size={14} />
+                  <span>{stat.label}</span>
+                </div>
 
-      {/* STORAGE SUMMARY */}
-
-      {!storageLoading &&
-        !storageError &&
-        storage && (
-          <motion.section
-            className="dashboard-files-section"
-            initial={{
-              opacity: 0,
-              y: 15,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
-            transition={{
-              duration: 0.4,
-              delay: 0.12,
-            }}
-          >
-            <div className="dashboard-section-heading">
-              <div>
-                <span className="dashboard-eyebrow">
-                  VAULT STORAGE
+                <span className="dashboard-stat-index">
+                  {stat.number}
                 </span>
-
-                <h2>Storage overview</h2>
               </div>
 
-              <button
-                type="button"
-                className="dashboard-view-all"
-                onClick={() =>
-                  navigate("/settings")
-                }
-              >
-                Manage storage
-                <span>↗</span>
-              </button>
-            </div>
+              <strong>{stat.value}</strong>
 
-            <div className="dashboard-files-card">
-              <div
-                className="dashboard-storage-overview"
-                style={{
-                  padding: "24px",
-                }}
-              >
+              <p>{stat.description}</p>
+            </motion.div>
+          );
+        })}
+      </section>
+
+      {/* =====================================================
+          STORAGE
+         ===================================================== */}
+
+      <motion.section
+        className="dashboard-storage-section"
+        initial={{
+          opacity: 0,
+          y: 18,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+        }}
+        transition={{
+          duration: 0.4,
+          delay: 0.18,
+        }}
+      >
+        <div className="dashboard-section-heading">
+          <div>
+            <span className="dashboard-eyebrow">
+              VAULT STORAGE
+            </span>
+
+            <h2>Storage overview</h2>
+
+            <p>
+              Monitor the capacity of your private
+              workspace.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="dashboard-view-all"
+            onClick={() => navigate("/settings")}
+          >
+            Manage storage
+            <ArrowUpRight size={14} />
+          </button>
+        </div>
+
+        <div className="dashboard-storage-card">
+          {storageLoading ? (
+            <div className="storage-loading">
+              <div className="storage-skeleton-ring" />
+
+              <div className="storage-skeleton-lines">
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
+          ) : storageError ? (
+            <div className="dashboard-inline-error">
+              <span>!</span>
+              <div>
+                <strong>
+                  Storage unavailable
+                </strong>
+                <p>{storageError}</p>
+              </div>
+            </div>
+          ) : storage ? (
+            <>
+              <div className="storage-main">
                 <div
+                  className="storage-ring"
                   style={{
-                    display: "flex",
-                    justifyContent:
-                      "space-between",
-                    alignItems: "center",
-                    gap: "20px",
-                    marginBottom: "14px",
+                    background: `conic-gradient(
+                      #17191d ${storagePercentage}%,
+                      #eceef1 ${storagePercentage}% 100%
+                    )`,
                   }}
                 >
-                  <div>
-                    <strong
-                      style={{
-                        display: "block",
-                        fontSize: "24px",
-                        marginBottom: "4px",
-                      }}
-                    >
-                      {formatBytes(
-                        storage.used,
-                      )}
+                  <div className="storage-ring-inner">
+                    <strong>
+                      {storagePercentage.toFixed(1)}
+                      <small>%</small>
                     </strong>
 
-                    <span>
-                      of{" "}
-                      {formatBytes(
-                        storage.total,
-                      )}{" "}
-                      used
-                    </span>
+                    <span>used</span>
                   </div>
+                </div>
+
+                <div className="storage-main-copy">
+                  <span className="storage-label">
+                    CURRENT USAGE
+                  </span>
 
                   <strong>
-                    {storagePercentage.toFixed(
-                      2,
-                    )}
-                    %
+                    {formatBytes(storage.used)}
+                  </strong>
+
+                  <p>
+                    of {formatBytes(storage.total)}{" "}
+                    total capacity
+                  </p>
+
+                  <div
+                    className={`storage-status ${
+                      storageWarning
+                        ? "warning"
+                        : ""
+                    }`}
+                  >
+                    <span />
+                    {storageWarning
+                      ? "Storage is getting full"
+                      : "Storage capacity is healthy"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="storage-details">
+                <div>
+                  <span>Used</span>
+                  <strong>
+                    {formatBytes(storage.used)}
                   </strong>
                 </div>
 
-                <div className="storage-bar">
-                  <div
-                    className="storage-progress"
-                    style={{
-                      width: `${storagePercentage}%`,
-                    }}
-                  />
+                <div>
+                  <span>Available</span>
+                  <strong>
+                    {formatBytes(
+                      storage.available
+                    )}
+                  </strong>
                 </div>
 
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent:
-                      "space-between",
-                    marginTop: "10px",
-                    fontSize: "13px",
-                  }}
-                >
-                  <span>
-                    {formatBytes(
-                      storage.available,
-                    )}{" "}
-                    available
-                  </span>
-
-                  <span>
-                    {formatBytes(
-                      storage.total,
-                    )}{" "}
-                    total
-                  </span>
+                <div>
+                  <span>Total</span>
+                  <strong>
+                    {formatBytes(storage.total)}
+                  </strong>
                 </div>
               </div>
-            </div>
-          </motion.section>
-        )}
+            </>
+          ) : null}
+        </div>
+      </motion.section>
 
-      {/* STORAGE ERROR */}
-
-      {!storageLoading &&
-        storageError && (
-          <div className="dashboard-state">
-            <div className="dashboard-state-icon">
-              !
-            </div>
-
-            <h3>
-              Storage information unavailable
-            </h3>
-
-            <p>{storageError}</p>
-          </div>
-        )}
-
-      {/* RECENT FILES */}
+      {/* =====================================================
+          RECENT FILES
+         ===================================================== */}
 
       <motion.section
         className="dashboard-files-section"
+        initial={{
+          opacity: 0,
+          y: 18,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+        }}
+        transition={{
+          duration: 0.4,
+          delay: 0.24,
+        }}
+      >
+        <div className="dashboard-section-heading">
+          <div>
+            <span className="dashboard-eyebrow">
+              FILE ACTIVITY
+            </span>
+
+            <h2>Recent files</h2>
+
+            <p>
+              Your latest documents and vault activity.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="dashboard-view-all"
+            onClick={() => navigate("/files")}
+          >
+            View all
+            <ArrowUpRight size={14} />
+          </button>
+        </div>
+
+        <div className="dashboard-files-card">
+          {/* LOADING */}
+
+          {loading && (
+            <div className="dashboard-loading-list">
+              {[1, 2, 3, 4].map((item) => (
+                <div
+                  className="file-skeleton-row"
+                  key={item}
+                >
+                  <div className="file-skeleton-icon" />
+
+                  <div className="file-skeleton-content">
+                    <span />
+                    <span />
+                  </div>
+
+                  <div className="file-skeleton-date" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ERROR */}
+
+          {!loading && error && (
+            <div className="dashboard-state">
+              <div className="dashboard-state-icon error">
+                !
+              </div>
+
+              <h3>
+                Something went wrong
+              </h3>
+
+              <p>{error}</p>
+
+              <button
+                type="button"
+                className="dashboard-empty-button"
+                onClick={() =>
+                  fetchDashboardData()
+                }
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {/* EMPTY */}
+
+          {!loading &&
+            !error &&
+            recentFiles.length === 0 && (
+              <div className="dashboard-empty-state">
+                <motion.div
+                  className="empty-vault-icon"
+                  animate={{
+                    y: [0, -4, 0],
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <Sparkles size={23} />
+                </motion.div>
+
+                <span className="dashboard-eyebrow">
+                  YOUR VAULT IS READY
+                </span>
+
+                <h3>
+                  Start building your private
+                  workspace
+                </h3>
+
+                <p>
+                  Upload your first document and
+                  keep everything important in one
+                  secure place.
+                </p>
+
+                <button
+                  type="button"
+                  className="dashboard-primary-button"
+                  onClick={() =>
+                    navigate("/files")
+                  }
+                >
+                  <Upload size={15} />
+                  Upload your first file
+                </button>
+              </div>
+            )}
+
+          {/* FILE LIST */}
+
+          {!loading &&
+            !error &&
+            recentFiles.length > 0 && (
+              <div className="dashboard-file-list">
+                <AnimatePresence>
+                  {recentFiles.map(
+                    (file, index) => {
+                      const FileIcon =
+                        getFileIcon(file.name);
+
+                      return (
+                        <motion.div
+                          key={file.id}
+                          className="dashboard-file-row"
+                          initial={{
+                            opacity: 0,
+                            x: -10,
+                          }}
+                          animate={{
+                            opacity: 1,
+                            x: 0,
+                          }}
+                          transition={{
+                            duration: 0.28,
+                            delay:
+                              index * 0.045,
+                          }}
+                        >
+                          <div className="dashboard-file-icon">
+                            <FileIcon size={17} />
+
+                            <span>
+                              {getFileTypeLabel(
+                                file.name
+                              )}
+                            </span>
+                          </div>
+
+                          <div className="dashboard-file-details">
+                            <strong
+                              title={file.name}
+                            >
+                              {file.name}
+                            </strong>
+
+                            <div className="dashboard-file-meta">
+                              <span>
+                                {formatBytes(
+                                  file.size
+                                )}
+                              </span>
+
+                              <span className="meta-separator">
+                                •
+                              </span>
+
+                              <span
+                                className={
+                                  file.visibility ===
+                                  "shared"
+                                    ? "visibility-shared"
+                                    : "visibility-private"
+                                }
+                              >
+                                {file.visibility ===
+                                "shared"
+                                  ? "Shared"
+                                  : "Private"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <time
+                            className="dashboard-file-date"
+                            dateTime={
+                              file.created_at
+                            }
+                          >
+                            {formatDate(
+                              file.created_at
+                            )}
+                          </time>
+
+                          <div className="dashboard-file-actions">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handlePreview(
+                                  file
+                                )
+                              }
+                            >
+                              Preview
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDownload(
+                                  file
+                                )
+                              }
+                            >
+                              <Download size={13} />
+                              Download
+                            </button>
+                          </div>
+                        </motion.div>
+                      );
+                    }
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+        </div>
+      </motion.section>
+
+      {/* =====================================================
+          BOTTOM SECURITY STRIP
+         ===================================================== */}
+
+      <motion.section
+        className="dashboard-security-strip"
         initial={{
           opacity: 0,
           y: 15,
@@ -572,200 +1098,47 @@ function Dashboard() {
         }}
         transition={{
           duration: 0.4,
-          delay: 0.15,
+          delay: 0.3,
         }}
       >
-        <div className="dashboard-section-heading">
-          <div>
-            <span className="dashboard-eyebrow">
-              FILE ACTIVITY
-            </span>
-
-            <h2>Recent files</h2>
-          </div>
-
-          <button
-            type="button"
-            className="dashboard-view-all"
-            onClick={() =>
-              navigate("/files")
-            }
-          >
-            View all
-
-            <span>↗</span>
-          </button>
+        <div className="security-strip-icon">
+          <ShieldCheck size={19} />
         </div>
 
-        <div className="dashboard-files-card">
-          {/* LOADING */}
+        <div className="security-strip-copy">
+          <span>Your data stays private</span>
 
-          {loading && (
-            <div className="dashboard-state">
-              <div className="dashboard-spinner" />
+          <p>
+            Files in your vault are protected by
+            authenticated access unless you explicitly
+            share them.
+          </p>
+        </div>
 
-              <p>
-                Loading your vault...
-              </p>
-            </div>
-          )}
-
-          {/* ERROR */}
-
-          {!loading && error && (
-            <div className="dashboard-state">
-              <div className="dashboard-state-icon">
-                !
-              </div>
-
-              <h3>
-                Something went wrong
-              </h3>
-
-              <p>{error}</p>
-            </div>
-          )}
-
-          {/* EMPTY */}
-
-          {!loading &&
-            !error &&
-            files.length === 0 && (
-              <div className="dashboard-state">
-                <div className="dashboard-state-icon">
-                  +
-                </div>
-
-                <h3>
-                  Your vault is empty
-                </h3>
-
-                <p>
-                  Upload your first document to
-                  start building your private
-                  workspace.
-                </p>
-
-                <button
-                  type="button"
-                  className="dashboard-empty-button"
-                  onClick={() =>
-                    navigate("/files")
-                  }
-                >
-                  Upload your first file
-                </button>
-              </div>
-            )}
-
-          {/* FILE LIST */}
-
-          {!loading &&
-            !error &&
-            files.length > 0 && (
-              <div className="dashboard-file-list">
-                {files
-                  .slice(0, 6)
-                  .map((file, index) => (
-                    <motion.div
-                      key={file.id}
-                      className="dashboard-file-row"
-                      initial={{
-                        opacity: 0,
-                        x: -8,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        x: 0,
-                      }}
-                      transition={{
-                        duration: 0.25,
-                        delay:
-                          index * 0.05,
-                      }}
-                    >
-                      <div className="dashboard-file-icon">
-                        <span>
-                          {getFileType(
-                            file.name,
-                          )}
-                        </span>
-                      </div>
-
-                      <div className="dashboard-file-details">
-                        <strong
-                          title={file.name}
-                        >
-                          {file.name}
-                        </strong>
-
-                        <div className="dashboard-file-meta">
-                          <span>
-                            {formatBytes(
-                              file.size,
-                            )}
-                          </span>
-
-                          <span className="meta-separator">
-                            •
-                          </span>
-
-                          <span
-                            className={
-                              file.visibility ===
-                              "shared"
-                                ? "visibility-shared"
-                                : "visibility-private"
-                            }
-                          >
-                            {file.visibility ===
-                            "shared"
-                              ? "Shared"
-                              : "Private"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <time
-                        className="dashboard-file-date"
-                        dateTime={
-                          file.created_at
-                        }
-                      >
-                        {formatDate(
-                          file.created_at,
-                        )}
-                      </time>
-
-                      <div className="dashboard-file-actions">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handlePreview(
-                              file,
-                            )
-                          }
-                        >
-                          Preview
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleDownload(
-                              file,
-                            )
-                          }
-                        >
-                          Download
-                        </button>
-                      </div>
-                    </motion.div>
-                  ))}
-              </div>
-            )}
+        <div className="security-strip-status">
+          <span className="live-dot" />
+          Protected workspace
         </div>
       </motion.section>
+
+      {/* =====================================================
+          REFRESH
+         ===================================================== */}
+
+      <button
+        type="button"
+        className={`dashboard-refresh ${
+          refreshing ? "is-refreshing" : ""
+        }`}
+        onClick={() =>
+          fetchDashboardData(true)
+        }
+        disabled={refreshing}
+        title="Refresh dashboard"
+        aria-label="Refresh dashboard"
+      >
+        <RefreshCw size={15} />
+      </button>
     </div>
   );
 }

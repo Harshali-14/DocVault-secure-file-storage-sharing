@@ -49,5 +49,14 @@ class File(models.Model):
     class Meta:
         ordering = ["-created_at"]
 
-    def __str__(self):
-        return self.name
+        constraints = [
+        models.UniqueConstraint(
+            fields=["owner", "folder", "name"],
+            name="unique_file_name_per_owner_folder",
+        ),
+        models.UniqueConstraint(
+            fields=["owner", "name"],
+            condition=models.Q(folder__isnull=True),
+            name="unique_root_file_name_per_owner",
+        ),
+    ]

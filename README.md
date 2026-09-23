@@ -1018,49 +1018,42 @@ npm run preview
 
 # Screenshots
 
-Screenshots can be added under:
+DocVault includes a modern, responsive interface designed around secure private document management.
 
-```text
-docs/screenshots/
-```
-
-Recommended screenshots:
-
-```text
-docs/
-└── screenshots/
-    ├── landing.png
-    ├── login.png
-    ├── dashboard.png
-    ├── files.png
-    ├── folders.png
-    ├── sharing.png
-    ├── activity.png
-    ├── trash.png
-    └── mobile.png
-```
-
-Then include them here:
-
-```md
-## Screenshots
 
 ### Landing Page
 
-![DocVault Landing Page](docs/screenshots/landing.png)
+![DocVault Landing Page](Screenshot/home.png)
+
+### Login
+
+![DocVault Login](Screenshot/login.png)
+
+### Register
+
+![DocVault Register](Screenshot/register.png)
 
 ### Dashboard
 
-![DocVault Dashboard](docs/screenshots/dashboard.png)
+![DocVault Dashboard](Screenshot/dashboard.png)
 
 ### File Management
 
-![DocVault Files](docs/screenshots/files.png)
+![DocVault Files](Screenshot/files.png)
 
-### Responsive Design
+### Folder Management
 
-![DocVault Mobile](docs/screenshots/mobile.png)
-```
+![DocVault Folders](Screenshot/folders.png)
+
+### Activity & Audit Trail
+
+![DocVault Activity](Screenshot/activity.png)
+
+### Settings
+
+![DocVault Settings](Screenshot/settings.png)
+
+
 
 ---
 

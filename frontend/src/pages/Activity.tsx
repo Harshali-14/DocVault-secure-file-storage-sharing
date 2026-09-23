@@ -120,8 +120,8 @@ const getActionConfig = (action: string): ActionConfig => {
     ACTION_CONFIG[action] || {
       label: action
         .replaceAll("_", " ")
-        .replace(/\b\w/g, (character) => character.toUpperCase()),
-      icon: ActivityIcon,
+        .replace(/\b\w/g, (character: string) => character.toUpperCase()),    
+  icon: ActivityIcon,
       tone: "default",
     }
   );
